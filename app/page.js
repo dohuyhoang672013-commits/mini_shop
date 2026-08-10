@@ -24,7 +24,7 @@ export default function Home() {
                     />
                     <div className="hero-overlay">
                         <div className="hero-content">
-                            <h1>Chạm Vào Đất,<br />Kể Câu Chuyện Bàn Tay</h1>
+                            <h1>Chạm Vào <em>Đất</em>,<br />Kể Câu Chuyện <em>Bàn Tay</em></h1>
                             <p>Mang vẻ đẹp mộc mạc, tĩnh lặng của tự nhiên vào ngôi nhà bạn qua các tác phẩm thủ công chế tác tỉ mỉ bởi nghệ nhân Việt.</p>
                             <a href="#featured-products" className="btn btn-primary">Khám phá bộ sưu tập</a>
                         </div>

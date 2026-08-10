@@ -82,7 +82,7 @@ input, button {
 }
 
 .section {
-    padding: 80px 0;
+    padding: 100px 0;
 }
 
 .section-bg {
@@ -105,10 +105,11 @@ input, button {
 .section-header h2::after {
     content: '';
     display: block;
-    width: 60px;
-    height: 2px;
+    width: 40px;
+    height: 1px;
     background-color: var(--primary-color);
-    margin: 12px auto 0 auto;
+    margin: 16px auto 0 auto;
+    opacity: 0.6;
 }
 
 .section-header p {
@@ -319,15 +320,15 @@ input, button {
 
 /* Hero Section */
 .hero-section {
-    padding: 40px 0;
+    padding: 30px 0;
 }
 
 .hero-banner-container {
     position: relative;
-    border-radius: var(--border-radius-md);
+    border-radius: var(--border-radius-lg);
     overflow: hidden;
-    height: 500px;
-    box-shadow: var(--box-shadow-light);
+    height: 520px;
+    box-shadow: 0 20px 40px rgba(143, 89, 56, 0.05);
 }
 
 .hero-image {
@@ -335,6 +336,11 @@ input, button {
     height: 100%;
     object-fit: cover;
     object-position: center;
+    transition: transform 6s var(--transition-ease);
+}
+
+.hero-banner-container:hover .hero-image {
+    transform: scale(1.03);
 }
 
 .hero-overlay {
@@ -343,28 +349,53 @@ input, button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to right, rgba(44, 37, 32, 0.7) 30%, rgba(44, 37, 32, 0.2) 100%);
+    background: rgba(44, 37, 32, 0.08);
     display: flex;
     align-items: center;
     padding: 0 80px;
 }
 
 .hero-content {
-    max-width: 550px;
-    color: var(--text-light);
+    max-width: 500px;
+    color: var(--text-main);
+    background: rgba(253, 251, 247, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 48px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(143, 89, 56, 0.12);
+    box-shadow: 0 15px 35px rgba(44, 37, 32, 0.08);
+    transform: translateY(0);
+    transition: all var(--transition-speed) var(--transition-ease);
+}
+
+.hero-content:hover {
+    transform: translateY(-2px);
+    border-color: rgba(143, 89, 56, 0.25);
+    box-shadow: 0 20px 40px rgba(44, 37, 32, 0.12);
 }
 
 .hero-content h1 {
-    font-size: 3.5rem;
-    color: var(--text-light);
-    margin-bottom: 20px;
-    line-height: 1.2;
+    font-size: 3rem;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    line-height: 1.25;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+}
+
+.hero-content h1 em {
+    font-style: italic;
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    color: var(--primary-color);
 }
 
 .hero-content p {
-    font-size: 1.1rem;
-    margin-bottom: 30px;
-    opacity: 0.9;
+    font-size: 1.02rem;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+    line-height: 1.65;
 }
 
 /* Categories Section */
@@ -383,31 +414,32 @@ input, button {
 }
 
 .category-img-wrapper {
-    width: 150px;
-    height: 150px;
-    border-radius: var(--border-radius-circle);
+    width: 160px;
+    height: 220px;
+    border-radius: 120px 120px 0 0;
     overflow: hidden;
     margin-bottom: 16px;
-    border: 3px solid var(--border-color);
+    border: 1px solid var(--border-color);
     box-shadow: var(--box-shadow-light);
     transition: all var(--transition-speed) var(--transition-ease);
+    background-color: var(--primary-light);
 }
 
 .category-card:hover .category-img-wrapper {
     border-color: var(--primary-color);
-    transform: translateY(-8px);
-    box-shadow: var(--box-shadow-hover);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(143, 89, 56, 0.1);
 }
 
 .category-img-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform var(--transition-speed) var(--transition-ease);
+    transition: transform 1.5s var(--transition-ease);
 }
 
 .category-card:hover img {
-    transform: scale(1.08);
+    transform: scale(1.05);
 }
 
 .category-card h3 {
@@ -582,7 +614,7 @@ input, button {
 
 .value-card {
     text-align: center;
-    padding: 30px;
+    padding: 36px 30px;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
@@ -593,7 +625,7 @@ input, button {
 .value-card:hover {
     box-shadow: var(--box-shadow-hover);
     transform: translateY(-4px);
-    border-color: rgba(143, 89, 56, 0.15);
+    border-color: rgba(143, 89, 56, 0.2);
 }
 
 .value-icon-wrapper {
@@ -601,28 +633,37 @@ input, button {
     height: 64px;
     background-color: var(--primary-light);
     color: var(--primary-color);
-    border-radius: var(--border-radius-circle);
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px auto;
+    margin: 0 auto 24px auto;
+    transition: all var(--transition-speed) var(--transition-ease);
+}
+
+.value-card:hover .value-icon-wrapper {
+    transform: rotate(5deg) scale(1.05);
+    background-color: var(--primary-color);
+    color: var(--text-light);
 }
 
 .value-icon-wrapper svg {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
 }
 
 .value-card h3 {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    color: var(--text-main);
 }
 
 .value-card p {
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
 }
 
 /* Footer Styles */
@@ -1554,33 +1595,33 @@ input, button {
     width: 36px;
     height: 36px;
     border-radius: var(--border-radius-circle);
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.95);
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
     cursor: pointer;
-    box-shadow: var(--box-shadow-light);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     z-index: 5;
     transition: all var(--transition-speed) var(--transition-ease);
 }
 
 .wishlist-btn-card:hover {
     background-color: var(--text-light);
-    color: #E03E3E;
+    color: #C05C46;
     transform: scale(1.1);
-    box-shadow: var(--box-shadow-hover);
+    box-shadow: 0 6px 15px rgba(192, 92, 70, 0.15);
 }
 
 .wishlist-btn-card.active {
     background-color: var(--text-light);
-    color: #E03E3E;
+    color: #C05C46;
 }
 
 .wishlist-btn-card.active svg {
-    fill: #E03E3E;
-    stroke: #E03E3E;
+    fill: #C05C46;
+    stroke: #C05C46;
 }
 
 .wishlist-btn-card svg {
