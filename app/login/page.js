@@ -9,7 +9,7 @@ export default function LoginPage() {
     const router = useRouter();
     const { user, loginUser, isMounted } = useShop();
 
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
     // If already logged in, redirect to home
@@ -23,9 +23,9 @@ export default function LoginPage() {
         }
     }, [user, isMounted]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const res = loginUser(username, password);
+        const res = await loginUser(email, password);
 
         if (res.success) {
             const checkoutIntent = sessionStorage.getItem("mini_shop_checkout_intent");
@@ -63,13 +63,13 @@ export default function LoginPage() {
                     
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label className="form-label">Tên tài khoản</label>
+                            <label className="form-label">Địa chỉ Email</label>
                             <input
-                                type="text"
+                                type="email"
                                 className="form-input"
-                                placeholder="Tên đăng nhập (ví dụ: user hoặc admin)"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Email của bạn (ví dụ: customer@example.com)"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 required
                             />
                         </div>

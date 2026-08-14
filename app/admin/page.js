@@ -11,6 +11,7 @@ export default function AdminPage() {
         products,
         orders,
         user,
+        authLoading,
         isMounted,
         addProduct,
         updateProduct,
@@ -51,13 +52,13 @@ export default function AdminPage() {
 
     // Guard: check if user is admin
     useEffect(() => {
-        if (isMounted) {
+        if (isMounted && !authLoading) {
             if (!user || user.role !== "admin") {
                 alert("Vui lòng đăng nhập tài khoản admin để vào trang quản trị!");
                 router.push("/login");
             }
         }
-    }, [user, isMounted]);
+    }, [user, authLoading, isMounted]);
 
     // Redraw charts when activeTab, orders, products, or Chart.js loads
     useEffect(() => {
@@ -239,15 +240,7 @@ export default function AdminPage() {
         }
     }, [activeTab, orders, products, chartLoaded, isMounted]);
 
-    if (!isMounted || !user || user.role !== "admin") {
-        return (
-            <main className="container section">
-                <div style={{ textAlign: "center", padding: "80px", color: "var(--text-muted)" }}>
-                    Đang xác thực thông tin quản trị...
-                </div>
-            </main>
-        );
-    }
+
 
     // --- Tab overview statistics calculation ---
     const totalRevenue = orders
@@ -305,6 +298,14 @@ export default function AdminPage() {
         setProdStatus("active");
         setProdDesc("");
     };
+
+    if (!isMounted || authLoading || !user || user.role !== "admin") {
+        return (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--text-muted)", fontSize: "1.1rem" }}>
+                Đang xác thực quyền truy cập...
+            </div>
+        );
+    }
 
     const handleEditClick = (p) => {
         setEditingProduct(p);

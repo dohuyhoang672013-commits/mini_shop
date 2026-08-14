@@ -57,7 +57,7 @@ export default function CheckoutPage() {
         setPaymentMethod(method);
     };
 
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
 
         if (cart.length === 0) {
@@ -65,17 +65,24 @@ export default function CheckoutPage() {
             return;
         }
 
-        const id = placeOrder({
-            name,
-            phone,
-            email,
-            address,
-            notes,
-            paymentMethod
-        });
+        try {
+            const id = await placeOrder({
+                name,
+                phone,
+                email,
+                address,
+                notes,
+                paymentMethod
+            });
 
-        setOrderId(id);
-        setShowSuccessModal(true);
+            if (id) {
+                setOrderId(id);
+                setShowSuccessModal(true);
+            }
+        } catch (error) {
+            console.error("Lỗi khi đặt hàng:", error);
+            alert("Đặt hàng thất bại, vui lòng thử lại!");
+        }
     };
 
     const formatVND = (number) => {

@@ -80,8 +80,8 @@ export default function Header() {
         router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
     };
 
-    const handleLogout = () => {
-        logoutUser();
+    const handleLogout = async () => {
+        await logoutUser();
         setUserMenuOpen(false);
         if (pathname === "/checkout" || pathname === "/admin") {
             router.push("/");

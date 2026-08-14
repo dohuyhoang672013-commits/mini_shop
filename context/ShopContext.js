@@ -2,6 +2,9 @@
 
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { PRODUCTS_DATA } from "../data/products";
+import { createClient } from "../utils/supabase/client";
+
+const supabase = createClient();
 
 const ShopContext = createContext();
 
@@ -15,19 +18,84 @@ export function ShopProvider({ children }) {
     const [toast, setToast] = useState({ show: false, message: "" });
     const [cartOpen, setCartOpen] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
+    const [authLoading, setAuthLoading] = useState(true);
 
     // 2. Initial Hydration from localStorage
     useEffect(() => {
         setIsMounted(true);
 
-        // Load Products
-        const storedProducts = localStorage.getItem("mini_shop_products");
-        if (storedProducts) {
-            setProducts(JSON.parse(storedProducts));
-        } else {
-            setProducts(PRODUCTS_DATA);
-            localStorage.setItem("mini_shop_products", JSON.stringify(PRODUCTS_DATA));
-        }
+        const fetchProductsAndOrders = async () => {
+            try {
+                const { data: prodData, error: prodError } = await supabase
+                    .from("products")
+                    .select("*, categories(name)")
+                    .order("id", { ascending: true });
+                
+                if (prodError) throw prodError;
+
+                if (prodData) {
+                    const mappedProducts = prodData.map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        price: Number(p.price),
+                        rating: Number(p.rating),
+                        ratingCount: p.rating_count,
+                        category: p.category_slug,
+                        categoryName: p.categories ? p.categories.name : "",
+                        image: p.image,
+                        badge: p.badge || "",
+                        description: p.description,
+                        stock: p.stock,
+                        status: p.status
+                    }));
+                    setProducts(mappedProducts);
+                    localStorage.setItem("mini_shop_products", JSON.stringify(mappedProducts));
+                }
+            } catch (err) {
+                console.error("Error fetching products from Supabase:", err);
+                const storedProducts = localStorage.getItem("mini_shop_products");
+                if (storedProducts) {
+                    setProducts(JSON.parse(storedProducts));
+                } else {
+                    setProducts(PRODUCTS_DATA);
+                }
+            }
+
+            try {
+                const { data: ordData, error: ordError } = await supabase
+                    .from("orders")
+                    .select("*")
+                    .order("created_at", { ascending: false });
+
+                if (ordError) throw ordError;
+
+                if (ordData) {
+                    const mappedOrders = ordData.map(o => ({
+                        id: o.id,
+                        customerName: o.customer_name,
+                        phone: o.customer_phone,
+                        email: o.customer_email || "",
+                        address: o.customer_address,
+                        notes: o.notes || "",
+                        paymentMethod: o.payment_method || "COD",
+                        total: Number(o.total_amount),
+                        status: o.status,
+                        items: o.items,
+                        createdAt: new Date(o.created_at).toLocaleString("vi-VN")
+                    }));
+                    setOrders(mappedOrders);
+                    localStorage.setItem("mini_shop_orders", JSON.stringify(mappedOrders));
+                }
+            } catch (err) {
+                console.error("Error fetching orders from Supabase:", err);
+                const storedOrders = localStorage.getItem("mini_shop_orders");
+                if (storedOrders) {
+                    setOrders(JSON.parse(storedOrders));
+                }
+            }
+        };
+
+        fetchProductsAndOrders();
 
         // Load Cart
         const storedCart = localStorage.getItem("mini_shop_cart");
@@ -47,79 +115,25 @@ export function ShopProvider({ children }) {
             setUser(JSON.parse(storedUser));
         }
 
-        // Load Orders
-        const storedOrders = localStorage.getItem("mini_shop_orders");
-        if (storedOrders) {
-            setOrders(JSON.parse(storedOrders));
-        } else {
-            // Initial mock orders
-            const defaultOrders = [
-                {
-                    id: "#GOM98210",
-                    customerName: "Nguyễn Văn An",
-                    phone: "0987654321",
-                    email: "anv@gmail.com",
-                    address: "12 Chùa Bộc, Đống Đa, Hà Nội",
-                    notes: "Giao giờ hành chính",
-                    paymentMethod: "Chuyển khoản",
-                    items: [
-                        { id: 1, name: "Bình gốm trang trí mộc dáng bầu", price: 320000, quantity: 2 },
-                        { id: 3, name: "Đèn tre để bàn thủ công mỹ nghệ", price: 250000, quantity: 1 }
-                    ],
-                    total: 920000,
-                    status: "delivered",
-                    createdAt: "05/08/2026, 14:32:10"
-                },
-                {
-                    id: "#GOM32810",
-                    customerName: "Trần Thị Bích",
-                    phone: "0912345678",
-                    email: "btt@gmail.com",
-                    address: "45 Lê Lợi, Quận 1, TP. HCM",
-                    notes: "",
-                    paymentMethod: "COD",
-                    items: [
-                        { id: 2, name: "Bộ bình gốm tráng men màu minimal", price: 450000, quantity: 1 },
-                        { id: 6, name: "Giỏ mây đan tay đa năng có quai cầm", price: 220000, quantity: 2 }
-                    ],
-                    total: 920000,
-                    status: "shipping",
-                    createdAt: "06/08/2026, 09:15:22"
-                },
-                {
-                    id: "#GOM82341",
-                    customerName: "Lê Hoàng Cường",
-                    phone: "0909090909",
-                    email: "cle@gmail.com",
-                    address: "78 Nguyễn Huệ, Đà Nẵng",
-                    notes: "Gọi trước khi giao",
-                    paymentMethod: "COD",
-                    items: [
-                        { id: 7, name: "Tranh treo tường sợi cotton Macrame lớn", price: 380000, quantity: 1 }
-                    ],
-                    total: 410000,
-                    status: "pending",
-                    createdAt: "07/08/2026, 08:05:40"
-                },
-                {
-                    id: "#GOM42718",
-                    customerName: "Phạm Minh Đức",
-                    phone: "0933333333",
-                    email: "dpm@gmail.com",
-                    address: "22 Trần Hưng Đạo, Cần Thơ",
-                    notes: "",
-                    paymentMethod: "Chuyển khoản",
-                    items: [
-                        { id: 4, name: "Bộ bình gốm vân nứt thủ công dáng trà", price: 520000, quantity: 1 }
-                    ],
-                    total: 550000,
-                    status: "cancelled",
-                    createdAt: "04/08/2026, 16:48:15"
-                }
-            ];
-            setOrders(defaultOrders);
-            localStorage.setItem("mini_shop_orders", JSON.stringify(defaultOrders));
-        }
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                const sessionUser = session.user;
+                const role = sessionUser.user_metadata.role || (sessionUser.email === 'admin@tiemgom.com' ? 'admin' : 'customer');
+                const username = sessionUser.user_metadata.username || sessionUser.email.split('@')[0];
+                const newUser = { username, email: sessionUser.email, role };
+                setUser(newUser);
+                localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
+            } else {
+                setUser(null);
+                localStorage.removeItem("mini_shop_user");
+            }
+            setAuthLoading(false);
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     // 3. Show Toast Feedback helper
@@ -234,31 +248,109 @@ export function ShopProvider({ children }) {
     };
 
     // 6. User Authentication Operations
-    const loginUser = (username, password) => {
-        if (password === "123") {
-            const role = username === "admin" ? "admin" : "customer";
-            const newUser = { username, role };
-            setUser(newUser);
-            localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
-            showToast(`Đăng nhập thành công! Chào mừng ${username}.`);
-            return { success: true, role };
-        } else {
-            showToast("Mật khẩu không đúng! (Dùng mật khẩu mặc định: 123)");
-            return { success: false, error: "Incorrect password" };
+    const loginUser = async (email, password) => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) {
+            showToast(`Đăng nhập thất bại: ${error.message}`);
+            return { success: false, error: error.message };
         }
+
+        const sessionUser = data.user;
+        const role = sessionUser.email === 'admin@tiemgom.com' ? 'admin' : 'customer';
+        const username = sessionUser.user_metadata.username || sessionUser.email.split('@')[0];
+        
+        const newUser = { username, email: sessionUser.email, role };
+        setUser(newUser);
+        localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
+        showToast(`Đăng nhập thành công! Chào mừng ${username}.`);
+        return { success: true, role };
     };
 
-    const logoutUser = () => {
+    const registerUser = async (username, email, password) => {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    username: username
+                }
+            }
+        });
+
+        if (error) {
+            showToast(`Đăng ký thất bại: ${error.message}`);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+    };
+
+    const logoutUser = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error("Error signing out from Supabase:", error);
+        }
         setUser(null);
         localStorage.removeItem("mini_shop_user");
         showToast("Đã đăng xuất tài khoản!");
     };
 
     // 7. Checkout Operations
-    const placeOrder = (customerInfo) => {
-        const orderId = "#GOM" + Math.floor(Math.random() * 90000 + 10000);
+    const placeOrder = async (customerInfo) => {
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const totalAmount = subtotal + 30000; // subtotal + 30k shipping
+
+        // Deduct product stock
+        const updatedProducts = [...products];
+        for (const item of cart) {
+            const product = updatedProducts.find(p => p.id === item.id);
+            if (product) {
+                const newStock = Math.max(0, (product.stock || 0) - item.quantity);
+                product.stock = newStock;
+                await supabase
+                    .from('products')
+                    .update({ stock: newStock })
+                    .eq('id', item.id);
+            }
+        }
+
+        // Set state & save
+        setProducts(updatedProducts);
+        localStorage.setItem("mini_shop_products", JSON.stringify(updatedProducts));
+
+        // Insert order into Supabase
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([{
+                customer_name: customerInfo.name,
+                customer_phone: customerInfo.phone,
+                customer_address: customerInfo.address,
+                customer_email: customerInfo.email || "",
+                notes: customerInfo.notes || "",
+                payment_method: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
+                total_amount: totalAmount,
+                status: 'pending',
+                items: cart.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity
+                }))
+            }])
+            .select();
+
+        if (error) {
+            console.error("Error creating order in Supabase:", error);
+            showToast("Đã xảy ra lỗi khi đặt hàng!");
+            return null;
+        }
+
+        const dbOrder = data[0];
+        const orderId = dbOrder.id;
 
         const newOrder = {
             id: orderId,
@@ -271,22 +363,8 @@ export function ShopProvider({ children }) {
             items: [...cart],
             total: totalAmount,
             status: "pending",
-            createdAt: new Date().toLocaleString("vi-VN")
+            createdAt: new Date(dbOrder.created_at).toLocaleString("vi-VN")
         };
-
-        // Deduct product stock
-        const updatedProducts = products.map(p => {
-            const cartItem = cart.find(c => c.id === p.id);
-            if (cartItem) {
-                const newStock = Math.max(0, (p.stock || 0) - cartItem.quantity);
-                return { ...p, stock: newStock };
-            }
-            return p;
-        });
-
-        // Set state & save
-        setProducts(updatedProducts);
-        localStorage.setItem("mini_shop_products", JSON.stringify(updatedProducts));
 
         setOrders(prevOrders => {
             const newOrders = [newOrder, ...prevOrders];
@@ -299,21 +377,49 @@ export function ShopProvider({ children }) {
     };
 
     // 8. Admin Operations (Products)
-    const addProduct = (newProductData) => {
-        const maxId = products.length > 0 ? Math.max(...products.map(p => p.id)) : 0;
+    const addProduct = async (newProductData) => {
+        const { data, error } = await supabase
+            .from('products')
+            .insert([{
+                name: newProductData.name,
+                price: newProductData.price,
+                stock: newProductData.stock,
+                rating: 5.0,
+                rating_count: 1,
+                category_slug: newProductData.category,
+                image: newProductData.image,
+                status: newProductData.status,
+                badge: "Mới",
+                description: newProductData.description
+            }])
+            .select();
+
+        if (error) {
+            console.error("Error adding product to Supabase:", error);
+            showToast("Lỗi khi thêm sản phẩm!");
+            return;
+        }
+
+        const newProd = data[0];
+        const { data: catData } = await supabase
+            .from('categories')
+            .select('name')
+            .eq('slug', newProd.category_slug)
+            .single();
+
         const newProduct = {
-            id: maxId + 1,
-            name: newProductData.name,
-            price: newProductData.price,
-            stock: newProductData.stock,
-            rating: 5.0,
-            ratingCount: 1,
-            category: newProductData.category,
-            categoryName: newProductData.categoryName,
-            image: newProductData.image,
-            status: newProductData.status,
-            badge: "Mới",
-            description: newProductData.description
+            id: newProd.id,
+            name: newProd.name,
+            price: Number(newProd.price),
+            stock: newProd.stock,
+            rating: Number(newProd.rating),
+            ratingCount: newProd.rating_count,
+            category: newProd.category_slug,
+            categoryName: catData ? catData.name : newProductData.categoryName,
+            image: newProd.image,
+            status: newProd.status,
+            badge: newProd.badge,
+            description: newProd.description
         };
 
         const updatedProducts = [...products, newProduct];
@@ -322,7 +428,29 @@ export function ShopProvider({ children }) {
         showToast(`Đã thêm sản phẩm mới: ${newProductData.name}`);
     };
 
-    const updateProduct = (updatedProductData) => {
+    const updateProduct = async (updatedProductData) => {
+        const { error } = await supabase
+            .from('products')
+            .update({
+                name: updatedProductData.name,
+                price: updatedProductData.price,
+                stock: updatedProductData.stock,
+                rating: updatedProductData.rating,
+                rating_count: updatedProductData.ratingCount,
+                category_slug: updatedProductData.category,
+                image: updatedProductData.image,
+                status: updatedProductData.status,
+                badge: updatedProductData.badge,
+                description: updatedProductData.description
+            })
+            .eq('id', updatedProductData.id);
+
+        if (error) {
+            console.error("Error updating product in Supabase:", error);
+            showToast("Lỗi khi cập nhật sản phẩm!");
+            return;
+        }
+
         const updatedProducts = products.map(p => {
             if (p.id === updatedProductData.id) {
                 return { ...p, ...updatedProductData };
@@ -334,9 +462,20 @@ export function ShopProvider({ children }) {
         showToast(`Đã cập nhật sản phẩm: ${updatedProductData.name}`);
     };
 
-    const deleteProduct = (productId) => {
+    const deleteProduct = async (productId) => {
         const p = products.find(item => item.id === productId);
         const name = p ? p.name : "Sản phẩm";
+
+        const { error } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', productId);
+
+        if (error) {
+            console.error("Error deleting product from Supabase:", error);
+            showToast("Lỗi khi xóa sản phẩm!");
+            return;
+        }
 
         const updatedProducts = products.filter(item => item.id !== productId);
         setProducts(updatedProducts);
@@ -345,7 +484,18 @@ export function ShopProvider({ children }) {
     };
 
     // 9. Admin Operations (Orders)
-    const updateOrderStatus = (orderId, newStatus) => {
+    const updateOrderStatus = async (orderId, newStatus) => {
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+
+        if (error) {
+            console.error("Error updating order status in Supabase:", error);
+            showToast("Lỗi khi cập nhật trạng thái đơn hàng!");
+            return;
+        }
+
         const updatedOrders = orders.map(o => {
             if (o.id === orderId) {
                 return { ...o, status: newStatus };
@@ -357,7 +507,18 @@ export function ShopProvider({ children }) {
         showToast(`Cập nhật thành công đơn hàng ${orderId}`);
     };
 
-    const deleteOrder = (orderId) => {
+    const deleteOrder = async (orderId) => {
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('id', orderId);
+
+        if (error) {
+            console.error("Error deleting order from Supabase:", error);
+            showToast("Lỗi khi xóa đơn hàng!");
+            return;
+        }
+
         const updatedOrders = orders.filter(o => o.id !== orderId);
         setOrders(updatedOrders);
         localStorage.setItem("mini_shop_orders", JSON.stringify(updatedOrders));
@@ -374,6 +535,7 @@ export function ShopProvider({ children }) {
                 wishlist,
                 orders,
                 user,
+                authLoading,
                 toast,
                 showToast,
                 cartOpen,
@@ -385,6 +547,7 @@ export function ShopProvider({ children }) {
                 toggleWishlist,
                 isWishlisted,
                 loginUser,
+                registerUser,
                 logoutUser,
                 placeOrder,
                 addProduct,

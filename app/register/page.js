@@ -7,7 +7,7 @@ import { useShop } from "../../context/ShopContext";
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { user, loginUser, showToast, isMounted } = useShop();
+    const { user, loginUser, registerUser, showToast, isMounted } = useShop();
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
@@ -21,7 +21,7 @@ export default function RegisterPage() {
         }
     }, [user, isMounted]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (password !== confirmPassword) {
@@ -29,20 +29,22 @@ export default function RegisterPage() {
             return;
         }
 
-        // Mock success register by logging in the customer automatically
-        const res = loginUser(username, "123"); // auto-login with correct password
+        const res = await registerUser(username, email, password);
 
         if (res.success) {
             showToast("Đăng ký thành công! Đang tự động đăng nhập...");
-            const checkoutIntent = sessionStorage.getItem("mini_shop_checkout_intent");
-            setTimeout(() => {
-                if (checkoutIntent === "true") {
-                    sessionStorage.removeItem("mini_shop_checkout_intent");
-                    router.push("/checkout");
-                } else {
-                    router.push("/");
-                }
-            }, 1000);
+            const loginRes = await loginUser(email, password);
+            if (loginRes.success) {
+                const checkoutIntent = sessionStorage.getItem("mini_shop_checkout_intent");
+                setTimeout(() => {
+                    if (checkoutIntent === "true") {
+                        sessionStorage.removeItem("mini_shop_checkout_intent");
+                        router.push("/checkout");
+                    } else {
+                        router.push("/");
+                    }
+                }, 1000);
+            }
         }
     };
 
