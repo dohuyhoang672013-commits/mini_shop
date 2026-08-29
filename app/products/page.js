@@ -9,22 +9,27 @@ import ProductCard from "../../components/ProductCard";
 function ProductsCatalog() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { products, isMounted } = useShop();
+    const { products } = useShop();
 
     const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
     const [sortBy, setSortBy] = useState("default");
     const [searchQuery, setSearchQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("all");
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Sync state with URL search params
     useEffect(() => {
-        if (isMounted) {
+        if (mounted) {
             const cat = searchParams.get("category") || "all";
             const search = searchParams.get("search") || "";
             setCategoryFilter(cat);
             setSearchQuery(search);
         }
-    }, [searchParams, isMounted]);
+    }, [searchParams, mounted]);
 
     const categories = [
         { id: "all", name: "Tất cả sản phẩm" },
@@ -168,7 +173,7 @@ function ProductsCatalog() {
                     {/* Active Filters & Result Count */}
                     <div className="shop-toolbar">
                         <div className="result-count">
-                            Hiển thị <span id="displayed-count">{isMounted ? sortedProducts.length : 0}</span> trên <span id="total-count">{isMounted ? products.filter(p => p.status !== "inactive").length : 0}</span> sản phẩm
+                            Hiển thị <span id="displayed-count">{mounted ? sortedProducts.length : 0}</span> trên <span id="total-count">{mounted ? products.filter(p => p.status !== "inactive").length : 0}</span> sản phẩm
                         </div>
                         <button
                             className="mobile-filter-btn"
@@ -183,7 +188,7 @@ function ProductsCatalog() {
                     </div>
 
                     {/* Products Grid */}
-                    {isMounted ? (
+                    {mounted ? (
                         sortedProducts.length === 0 ? (
                             <div className="no-results" style={{ display: "block" }}>
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">

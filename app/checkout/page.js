@@ -1,18 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useShop } from "../../context/ShopContext";
 
-export default function CheckoutPage() {
+function CheckoutCatalog() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const buyNowId = searchParams.get("buyNow");
+    
     const {
         cart,
         user,
-        isMounted,
         placeOrder
     } = useShop();
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Local form states
     const [name, setName] = useState("");
@@ -28,7 +36,7 @@ export default function CheckoutPage() {
 
     // Redirect to login if not logged in
     useEffect(() => {
-        if (isMounted) {
+        if (mounted) {
             if (!user) {
                 sessionStorage.setItem("mini_shop_checkout_intent", "true");
                 router.push("/login");
@@ -37,19 +45,23 @@ export default function CheckoutPage() {
                 setName(user.username === "admin" ? "" : user.username);
             }
         }
-    }, [user, isMounted]);
+    }, [user, mounted]);
 
-    if (!isMounted || !user) {
+    if (!mounted || !user) {
         return (
             <main className="container section">
                 <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
-                    Đang chuyển hướng đến đăng nhập...
+                    {!mounted ? "Đang tải trang thanh toán..." : "Đang chuyển hướng đến đăng nhập..."}
                 </div>
             </main>
         );
     }
 
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const checkoutItems = buyNowId 
+        ? cart.filter(item => String(item.id) === String(buyNowId))
+        : cart;
+
+    const subtotal = checkoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shipping = 30000;
     const total = subtotal + shipping;
 
@@ -60,8 +72,8 @@ export default function CheckoutPage() {
     const handleFormSubmit = async (e) => {
         e.preventDefault();
 
-        if (cart.length === 0) {
-            alert("Giỏ hàng của bạn đang trống!");
+        if (checkoutItems.length === 0) {
+            alert("Không có sản phẩm nào để thanh toán!");
             return;
         }
 
@@ -73,7 +85,7 @@ export default function CheckoutPage() {
                 address,
                 notes,
                 paymentMethod
-            });
+            }, checkoutItems);
 
             if (id) {
                 setOrderId(id);
@@ -245,12 +257,12 @@ export default function CheckoutPage() {
                         
                         {/* Checkout Items */}
                         <div className="checkout-items-list" id="checkout-summary-items">
-                            {cart.length === 0 ? (
+                            {checkoutItems.length === 0 ? (
                                 <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "20px 0" }}>
                                     Giỏ hàng của bạn đang trống!
                                 </div>
                             ) : (
-                                cart.map((item) => (
+                                checkoutItems.map((item) => (
                                     <div key={item.id} className="checkout-item">
                                         <div className="checkout-item-info">
                                             <img
@@ -281,13 +293,13 @@ export default function CheckoutPage() {
                         </div>
                         <div className="checkout-summary-row total">
                             <span>Tổng cộng</span>
-                            <span className="total-price">{formatVND(cart.length === 0 ? 0 : total)}</span>
+                            <span className="total-price">{formatVND(checkoutItems.length === 0 ? 0 : total)}</span>
                         </div>
                         
                         <button
                             type="submit"
                             className="btn btn-primary btn-checkout-submit"
-                            disabled={cart.length === 0}
+                            disabled={checkoutItems.length === 0}
                         >
                             Đặt hàng ngay
                         </button>
@@ -319,5 +331,19 @@ export default function CheckoutPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={
+            <main className="container section">
+                <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-muted)" }}>
+                    Đang tải trang thanh toán...
+                </div>
+            </main>
+        }>
+            <CheckoutCatalog />
+        </Suspense>
     );
 }

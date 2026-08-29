@@ -6,7 +6,12 @@ import { useShop } from "../../context/ShopContext";
 import ProductCard from "../../components/ProductCard";
 
 export default function FavoritesPage() {
-    const { wishlist, isMounted } = useShop();
+    const { wishlist } = useShop();
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     return (
         <main className="container section">
@@ -23,7 +28,7 @@ export default function FavoritesPage() {
 
             {/* Favorites Container */}
             <div className="shop-layout" style={{ display: "block" }}>
-                {!isMounted ? (
+                {!mounted ? (
                     <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
                         Đang tải danh sách yêu thích...
                     </div>

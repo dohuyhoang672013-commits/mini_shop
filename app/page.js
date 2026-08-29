@@ -1,12 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useShop } from "../context/ShopContext";
 import ProductCard from "../components/ProductCard";
 
 export default function Home() {
-    const { products, isMounted } = useShop();
+    const { products } = useShop();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Select featured products (first 8 products from the database)
     const featuredProducts = products.slice(0, 8);
@@ -118,7 +123,7 @@ export default function Home() {
                 </div>
                 
                 <div className="products-grid">
-                    {isMounted ? (
+                    {mounted ? (
                         featuredProducts.map((product) => (
                             <ProductCard key={product.id} product={product} />
                         ))

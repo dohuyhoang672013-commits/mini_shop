@@ -64,45 +64,82 @@ export default function CartDrawer() {
                         <div className="cart-items-list">
                             {cart.map((item) => (
                                 <div key={item.id} className="cart-item">
-                                    <img
-                                        src={formatImgPath(item.image)}
-                                        alt={item.name}
-                                        className="cart-item-img"
-                                        onError={(e) => { e.target.src = "/assets/images/placeholder.webp"; }}
-                                    />
-                                    <div className="cart-item-info">
-                                        <h4 className="cart-item-name">{item.name}</h4>
-                                        <div className="cart-item-price">{formatVND(item.price)}</div>
-                                        <div className="cart-item-qty">
-                                            <button
-                                                className="qty-btn minus"
-                                                onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                                            >
-                                                -
-                                            </button>
-                                            <input
-                                                type="number"
-                                                value={item.quantity}
-                                                className="qty-input"
-                                                readOnly
-                                            />
-                                            <button
-                                                className="qty-btn plus"
-                                                onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                                            >
-                                                +
-                                            </button>
+                                    <div className="cart-item-img-wrapper">
+                                        <img
+                                            src={formatImgPath(item.image)}
+                                            alt={item.name}
+                                            onError={(e) => { e.target.src = "/assets/images/placeholder.webp"; }}
+                                        />
+                                    </div>
+                                    
+                                    <div className="cart-item-details">
+                                        <h4 className="cart-item-title">{item.name}</h4>
+                                        
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginTop: "4px" }}>
+                                            <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                                                Đơn giá: {formatVND(item.price)}
+                                            </span>
+                                            <span style={{ fontSize: "0.9rem", color: "var(--text-main)", fontWeight: "600" }}>
+                                                Thành tiền: <span style={{ color: "var(--primary-color)", fontWeight: "700" }}>{formatVND(item.price * item.quantity)}</span>
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="cart-item-qty-wrapper" style={{ marginTop: "10px" }}>
+                                            <div className="cart-item-qty">
+                                                <button
+                                                    className="cart-qty-btn"
+                                                    onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
+                                                >
+                                                    -
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    className="cart-qty-input"
+                                                    readOnly
+                                                />
+                                                <button
+                                                    className="cart-qty-btn"
+                                                    onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                            
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <button
+                                                    className="btn btn-outline"
+                                                    style={{
+                                                        padding: "0 10px",
+                                                        fontSize: "0.78rem",
+                                                        height: "32px",
+                                                        borderRadius: "var(--border-radius-sm)",
+                                                        borderColor: "var(--primary-color)",
+                                                        color: "var(--primary-color)",
+                                                        backgroundColor: "transparent",
+                                                        fontWeight: "600"
+                                                    }}
+                                                    onClick={() => {
+                                                        setCartOpen(false);
+                                                        router.push(`/checkout?buyNow=${item.id}`);
+                                                    }}
+                                                >
+                                                    Mua riêng
+                                                </button>
+                                                
+                                                <button
+                                                    className="cart-item-remove"
+                                                    onClick={() => removeFromCart(item.id)}
+                                                    aria-label="Xóa"
+                                                    style={{ margin: 0 }}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" style={{ width: "18px", height: "18px" }}>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <button
-                                        className="cart-item-remove"
-                                        onClick={() => removeFromCart(item.id)}
-                                        aria-label="Xóa"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
                                 </div>
                             ))}
                         </div>

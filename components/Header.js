@@ -11,7 +11,6 @@ export default function Header() {
     const searchParams = useSearchParams();
 
     const {
-        isMounted,
         cart,
         wishlist,
         user,
@@ -23,6 +22,11 @@ export default function Header() {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [scrolled, setScrolled] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const userMenuRef = useRef(null);
 
@@ -41,11 +45,11 @@ export default function Header() {
 
     // Sync search input with URL search param
     useEffect(() => {
-        if (isMounted) {
+        if (mounted) {
             const query = searchParams.get("search") || "";
             setSearchQuery(query);
         }
-    }, [searchParams, isMounted]);
+    }, [searchParams, mounted]);
 
     // Close user dropdown when clicking outside
     useEffect(() => {
@@ -145,7 +149,7 @@ export default function Header() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                         <span className="wishlist-count" id="wishlist-count">
-                            {isMounted ? wishlistCount : 0}
+                            {mounted ? wishlistCount : 0}
                         </span>
                     </Link>
 
@@ -155,7 +159,7 @@ export default function Header() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                         </svg>
                         <span className="cart-count" id="cart-count">
-                            {isMounted ? cartCount : 0}
+                            {mounted ? cartCount : 0}
                         </span>
                     </button>
 
@@ -172,13 +176,13 @@ export default function Header() {
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
-                            {isMounted && user && (
+                            {mounted && user && (
                                 <span className="user-status-dot" id="user-status-dot" style={{ display: "block" }}></span>
                             )}
                         </button>
 
                         <div className={`user-dropdown ${userMenuOpen ? "active" : ""}`} id="user-dropdown">
-                            {isMounted && user ? (
+                            {mounted && user ? (
                                 <>
                                     <div className="user-dropdown-header">
                                         <div className="user-dropdown-username">{user.username}</div>

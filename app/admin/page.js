@@ -392,6 +392,18 @@ export default function AdminPage() {
         return "active";
     };
 
+    if (!isMounted || authLoading) {
+        return (
+            <div style={{ padding: "100px 0", textAlign: "center", color: "var(--text-muted)", fontSize: "1.1rem" }}>
+                Đang xác thực quyền truy cập quản trị...
+            </div>
+        );
+    }
+
+    if (!user || user.role !== "admin") {
+        return null;
+    }
+
     return (
         <>
             {/* Load Chart.js CDN */}

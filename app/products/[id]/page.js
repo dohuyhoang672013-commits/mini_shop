@@ -11,17 +11,22 @@ export default function ProductDetailPage({ params }) {
 
     const {
         products,
-        isMounted,
         addToCart,
         toggleWishlist,
         isWishlisted
     } = useShop();
 
+    const [mounted, setMounted] = useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const [qty, setQty] = useState(1);
 
     const product = products.find((p) => p.id === productId);
 
-    if (!isMounted) {
+    if (!mounted) {
         return (
             <main className="container section">
                 <div className="detail-loading">Đang tải thông tin sản phẩm...</div>
