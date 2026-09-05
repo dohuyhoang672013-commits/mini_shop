@@ -31,13 +31,16 @@ async function run() {
     console.log('User ID:', userId);
 
     // PostgreSQL connection
-    const client = new Client({
-        user: 'postgres.vvdmieppkecvpbmfphas',
-        host: 'aws-0-ap-south-1.pooler.supabase.com',
-        database: 'postgres',
-        password: 'dohuyhoang06072013',
-        port: 6543,
-    });
+    const connectionString = process.env.DATABASE_URL;
+    const client = connectionString
+        ? new Client({ connectionString })
+        : new Client({
+            user: process.env.PGUSER || 'postgres.vvdmieppkecvpbmfphas',
+            host: process.env.PGHOST || 'aws-0-ap-south-1.pooler.supabase.com',
+            database: process.env.PGDATABASE || 'postgres',
+            password: process.env.PGPASSWORD,
+            port: Number(process.env.PGPORT) || 6543,
+        });
 
     await client.connect();
     console.log('Connected to PostgreSQL database.');

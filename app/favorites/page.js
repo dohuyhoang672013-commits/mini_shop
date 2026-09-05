@@ -14,7 +14,7 @@ export default function FavoritesPage() {
     }, []);
 
     return (
-        <main className="container section">
+        <div className="container section">
             {/* Breadcrumbs */}
             <div className="breadcrumbs">
                 <Link href="/">Trang chủ</Link> &nbsp;/&nbsp; <span className="active-crumb">Yêu thích</span>
@@ -64,6 +64,6 @@ export default function FavoritesPage() {
                     </div>
                 )}
             </div>
-        </main>
+        </div>
     );
 }

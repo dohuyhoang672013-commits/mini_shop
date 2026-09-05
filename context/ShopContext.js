@@ -8,6 +8,21 @@ const supabase = createClient();
 
 const ShopContext = createContext();
 
+async function hashPassword(password) {
+    if (typeof window === "undefined" || !window.crypto || !window.crypto.subtle) {
+        return password;
+    }
+    try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+        return password;
+    }
+}
+
 export function ShopProvider({ children }) {
     // 1. Core States
     const [products, setProducts] = useState(PRODUCTS_DATA);
@@ -52,10 +67,14 @@ export function ShopProvider({ children }) {
                     localStorage.setItem("mini_shop_products", JSON.stringify(mappedProducts));
                 }
             } catch (err) {
-                console.error("Error fetching products from Supabase:", err);
+                console.warn("Chế độ ngoại tuyến: Không thể kết nối Supabase, sử dụng dữ liệu sản phẩm cục bộ.", err?.message || err);
                 const storedProducts = localStorage.getItem("mini_shop_products");
                 if (storedProducts) {
-                    setProducts(JSON.parse(storedProducts));
+                    try {
+                        setProducts(JSON.parse(storedProducts));
+                    } catch {
+                        setProducts(PRODUCTS_DATA);
+                    }
                 } else {
                     setProducts(PRODUCTS_DATA);
                 }
@@ -87,10 +106,23 @@ export function ShopProvider({ children }) {
                     localStorage.setItem("mini_shop_orders", JSON.stringify(mappedOrders));
                 }
             } catch (err) {
-                console.error("Error fetching orders from Supabase:", err);
+                console.warn("Chế độ ngoại tuyến: Không thể kết nối Supabase, sử dụng dữ liệu đơn hàng cục bộ.", err?.message || err);
                 const storedOrders = localStorage.getItem("mini_shop_orders");
                 if (storedOrders) {
-                    setOrders(JSON.parse(storedOrders));
+                    try {
+                        const parsed = JSON.parse(storedOrders);
+                        const uniqueOrders = [];
+                        const seenIds = new Set();
+                        for (const o of parsed) {
+                            if (!seenIds.has(String(o.id))) {
+                                seenIds.add(String(o.id));
+                                uniqueOrders.push(o);
+                            }
+                        }
+                        setOrders(uniqueOrders);
+                    } catch {
+                        setOrders([]);
+                    }
                 }
             }
         };
@@ -113,6 +145,20 @@ export function ShopProvider({ children }) {
         const storedUser = localStorage.getItem("mini_shop_user");
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+        }
+
+        // Seed default admin account if not already present
+        const initialUsers = JSON.parse(localStorage.getItem("mini_shop_local_users") || "[]");
+        if (!initialUsers.some(u => u.email === "admin@tiemgom.com")) {
+            hashPassword("admin123").then(hashed => {
+                initialUsers.push({
+                    username: "Quản Trị Viên",
+                    email: "admin@tiemgom.com",
+                    password: hashed,
+                    role: "admin"
+                });
+                localStorage.setItem("mini_shop_local_users", JSON.stringify(initialUsers));
+            });
         }
 
         // Listen for auth state changes
@@ -146,7 +192,7 @@ export function ShopProvider({ children }) {
 
     // 4. Cart Operations
     const addToCart = (productId, quantity = 1) => {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         if (!product) return;
 
         if (product.stock === 0) {
@@ -154,50 +200,54 @@ export function ShopProvider({ children }) {
             return;
         }
 
+        let toastMsg = "";
         setCart(prevCart => {
-            const existingIndex = prevCart.findIndex(item => item.id === productId);
+            const existingIndex = prevCart.findIndex(item => String(item.id) === String(productId));
             let newCart = [...prevCart];
 
             if (existingIndex > -1) {
                 const newQty = newCart[existingIndex].quantity + quantity;
                 if (product.stock !== undefined && newQty > product.stock) {
-                    showToast(`Chỉ còn ${product.stock} sản phẩm trong kho!`);
+                    toastMsg = `Chỉ còn ${product.stock} sản phẩm trong kho!`;
                     newCart[existingIndex].quantity = product.stock;
                 } else {
+                    toastMsg = `Đã cập nhật giỏ hàng: ${product.name}`;
                     newCart[existingIndex].quantity = newQty;
-                    showToast(`Đã cập nhật giỏ hàng: ${product.name}`);
                 }
             } else {
                 if (product.stock !== undefined && quantity > product.stock) {
+                    toastMsg = `Chỉ còn ${product.stock} sản phẩm trong kho!`;
                     newCart.push({ ...product, quantity: product.stock });
-                    showToast(`Chỉ còn ${product.stock} sản phẩm trong kho!`);
                 } else {
+                    toastMsg = `Đã thêm vào giỏ hàng: ${product.name}`;
                     newCart.push({ ...product, quantity });
-                    showToast(`Đã thêm vào giỏ hàng: ${product.name}`);
                 }
             }
             
             localStorage.setItem("mini_shop_cart", JSON.stringify(newCart));
-            setCartOpen(true);
             return newCart;
         });
+
+        if (toastMsg) showToast(toastMsg);
+        setCartOpen(true);
     };
 
     const updateCartQuantity = (productId, newQty) => {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         if (!product) return;
 
+        let toastMsg = "";
         setCart(prevCart => {
             let newCart = [...prevCart];
-            const idx = newCart.findIndex(item => item.id === productId);
+            const idx = newCart.findIndex(item => String(item.id) === String(productId));
             if (idx > -1) {
                 if (newQty <= 0) {
                     newCart.splice(idx, 1);
-                    showToast(`Đã xóa khỏi giỏ hàng: ${product.name}`);
+                    toastMsg = `Đã xóa khỏi giỏ hàng: ${product.name}`;
                 } else {
                     if (product.stock !== undefined && newQty > product.stock) {
                         newCart[idx].quantity = product.stock;
-                        showToast(`Chỉ còn ${product.stock} sản phẩm trong kho!`);
+                        toastMsg = `Chỉ còn ${product.stock} sản phẩm trong kho!`;
                     } else {
                         newCart[idx].quantity = newQty;
                     }
@@ -206,16 +256,18 @@ export function ShopProvider({ children }) {
             localStorage.setItem("mini_shop_cart", JSON.stringify(newCart));
             return newCart;
         });
+
+        if (toastMsg) showToast(toastMsg);
     };
 
     const removeFromCart = (productId) => {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         setCart(prevCart => {
-            const newCart = prevCart.filter(item => item.id !== productId);
+            const newCart = prevCart.filter(item => String(item.id) !== String(productId));
             localStorage.setItem("mini_shop_cart", JSON.stringify(newCart));
-            if (product) showToast(`Đã xóa khỏi giỏ hàng: ${product.name}`);
             return newCart;
         });
+        if (product) showToast(`Đã xóa khỏi giỏ hàng: ${product.name}`);
     };
 
     const clearCart = () => {
@@ -225,26 +277,29 @@ export function ShopProvider({ children }) {
 
     // 5. Wishlist Operations
     const toggleWishlist = (productId) => {
-        const product = products.find(p => p.id === productId);
+        const product = products.find(p => String(p.id) === String(productId));
         if (!product) return;
 
+        let toastMsg = "";
         setWishlist(prevWishlist => {
             let newWishlist = [...prevWishlist];
-            const idx = newWishlist.findIndex(item => item.id === productId);
+            const idx = newWishlist.findIndex(item => String(item.id) === String(productId));
             if (idx > -1) {
                 newWishlist.splice(idx, 1);
-                showToast(`Đã gỡ khỏi danh sách yêu thích: ${product.name}`);
+                toastMsg = `Đã gỡ khỏi danh sách yêu thích: ${product.name}`;
             } else {
                 newWishlist.push(product);
-                showToast(`Đã thêm vào danh sách yêu thích: ${product.name}`);
+                toastMsg = `Đã thêm vào danh sách yêu thích: ${product.name}`;
             }
             localStorage.setItem("mini_shop_wishlist", JSON.stringify(newWishlist));
             return newWishlist;
         });
+
+        if (toastMsg) showToast(toastMsg);
     };
 
     const isWishlisted = (productId) => {
-        return wishlist.some(item => item.id === productId);
+        return wishlist.some(item => String(item.id) === String(productId));
     };
 
     // 6. User Authentication Operations
@@ -266,7 +321,7 @@ export function ShopProvider({ children }) {
             const sessionUser = data.user;
             const metaRole = sessionUser.user_metadata?.role;
             const role = (sessionUser.email === 'admin@tiemgom.com' || metaRole === 'admin') ? 'admin' : 'customer';
-            const username = sessionUser.user_metadata.username || sessionUser.email.split('@')[0];
+            const username = sessionUser.user_metadata?.username || sessionUser.email.split('@')[0];
             
             const newUser = { username, email: sessionUser.email, role };
             setUser(newUser);
@@ -276,25 +331,43 @@ export function ShopProvider({ children }) {
         } catch (err) {
             console.warn("Using local fallback login:", err);
             const localUsers = JSON.parse(localStorage.getItem("mini_shop_local_users") || "[]");
-            const localUser = localUsers.find(u => u.email === email && u.password === password);
+            const hashedInput = await hashPassword(password);
             
-            if (localUser) {
-                const role = (email === 'admin@tiemgom.com' || email === 'test_auth_user_mini_shop@gmail.com' || email === 'dohuyhoang672013@gmail.com' || localUser.role === 'admin') ? 'admin' : 'customer';
+            // Built-in Admin account support
+            if (email === "admin@tiemgom.com" && (hashedInput === "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9" || password === "admin123")) {
+                const newUser = { username: "Quản Trị Viên", email, role: "admin" };
+                setUser(newUser);
+                localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
+                if (!localUsers.some(u => u.email === email)) {
+                    localUsers.push({ username: "Quản Trị Viên", email, password: hashedInput, role: "admin" });
+                    localStorage.setItem("mini_shop_local_users", JSON.stringify(localUsers));
+                }
+                showToast("Đăng nhập thành công với quyền Quản Trị Viên!");
+                return { success: true, role: "admin" };
+            }
+
+            // Match against hashed password or plain text (and auto-migrate to hash)
+            const userIndex = localUsers.findIndex(u => 
+                u.email === email && (u.password === hashedInput || u.password === password)
+            );
+            
+            if (userIndex > -1) {
+                const localUser = localUsers[userIndex];
+                if (localUser.password === password && hashedInput !== password) {
+                    localUser.password = hashedInput;
+                    localStorage.setItem("mini_shop_local_users", JSON.stringify(localUsers));
+                }
+                
+                const role = (email === 'admin@tiemgom.com' || localUser.role === 'admin') ? 'admin' : 'customer';
                 const newUser = { username: localUser.username, email, role };
                 setUser(newUser);
                 localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
                 showToast("Đăng nhập thành công! (Chế độ ngoại tuyến)");
                 return { success: true, role };
-            } else if (email === 'test_auth_user_mini_shop@gmail.com' && password === 'password123') {
-                const newUser = { username: "Hiếu Nguyễn", email, role: "admin" };
-                setUser(newUser);
-                localStorage.setItem("mini_shop_user", JSON.stringify(newUser));
-                showToast("Đăng nhập thành công! (Chế độ ngoại tuyến - Admin)");
-                return { success: true, role: "admin" };
             }
             
-            showToast("Đăng nhập thất bại: Tài khoản không chính xác hoặc Supabase đang ngoại tuyến.");
-            return { success: false, error: "Supabase offline and user not found locally." };
+            showToast("Đăng nhập thất bại: Tài khoản hoặc mật khẩu không chính xác.");
+            return { success: false, error: "Invalid credentials." };
         }
     };
 
@@ -327,7 +400,8 @@ export function ShopProvider({ children }) {
                 return { success: false, error: "Email already exists locally." };
             }
             
-            localUsers.push({ username, email, password });
+            const hashedPassword = await hashPassword(password);
+            localUsers.push({ username, email, password: hashedPassword, role: "customer" });
             localStorage.setItem("mini_shop_local_users", JSON.stringify(localUsers));
             showToast("Đăng ký thành công! (Chế độ ngoại tuyến)");
             return { success: true };
@@ -335,9 +409,10 @@ export function ShopProvider({ children }) {
     };
 
     const logoutUser = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error("Error signing out from Supabase:", error);
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.warn("Error signing out from Supabase:", error);
         }
         setUser(null);
         localStorage.removeItem("mini_shop_user");
@@ -347,87 +422,118 @@ export function ShopProvider({ children }) {
     // 7. Checkout Operations
     const placeOrder = async (customerInfo, overrideItems = null) => {
         const itemsToPlace = overrideItems || cart;
-        const subtotal = itemsToPlace.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const totalAmount = subtotal + 30000; // subtotal + 30k shipping
-
-        // Deduct product stock
-        const updatedProducts = [...products];
-        for (const item of itemsToPlace) {
-            const product = updatedProducts.find(p => p.id === item.id);
-            if (product) {
-                const newStock = Math.max(0, (product.stock || 0) - item.quantity);
-                product.stock = newStock;
-                await supabase
-                    .from('products')
-                    .update({ stock: newStock })
-                    .eq('id', item.id);
-            }
-        }
-
-        // Set state & save
-        setProducts(updatedProducts);
-        localStorage.setItem("mini_shop_products", JSON.stringify(updatedProducts));
-
-        // Insert order into Supabase
-        const { data, error } = await supabase
-            .from('orders')
-            .insert([{
-                customer_name: customerInfo.name,
-                customer_phone: customerInfo.phone,
-                customer_address: customerInfo.address,
-                customer_email: customerInfo.email || "",
-                notes: customerInfo.notes || "",
-                payment_method: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
-                total_amount: totalAmount,
-                status: 'pending',
-                items: itemsToPlace.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity
-                }))
-            }])
-            .select();
-
-        if (error) {
-            console.error("Error creating order in Supabase:", error);
-            showToast("Đã xảy ra lỗi khi đặt hàng!");
+        if (!itemsToPlace || itemsToPlace.length === 0) {
+            showToast("Không có sản phẩm nào trong giỏ để đặt hàng!");
             return null;
         }
 
-        const dbOrder = data[0];
-        const orderId = dbOrder.id;
+        const subtotal = itemsToPlace.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalAmount = subtotal + 30000; // subtotal + 30k shipping
+        let orderId = null;
+        let createdOrder = null;
+        let isOffline = false;
 
-        const newOrder = {
-            id: orderId,
-            customerName: customerInfo.name,
-            phone: customerInfo.phone,
-            email: customerInfo.email || "",
-            address: customerInfo.address,
-            notes: customerInfo.notes || "",
-            paymentMethod: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
-            items: [...itemsToPlace],
-            total: totalAmount,
-            status: "pending",
-            createdAt: new Date(dbOrder.created_at).toLocaleString("vi-VN")
-        };
+        try {
+            // Insert order into Supabase
+            const { data, error } = await supabase
+                .from('orders')
+                .insert([{
+                    customer_name: customerInfo.name,
+                    customer_phone: customerInfo.phone,
+                    customer_address: customerInfo.address,
+                    customer_email: customerInfo.email || "",
+                    notes: customerInfo.notes || "",
+                    payment_method: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
+                    total_amount: totalAmount,
+                    status: 'pending',
+                    items: itemsToPlace.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity
+                    }))
+                }])
+                .select();
 
+            if (error) throw error;
+            if (data && data[0]) {
+                const dbOrder = data[0];
+                orderId = dbOrder.id;
+                createdOrder = {
+                    id: orderId,
+                    customerName: customerInfo.name,
+                    phone: customerInfo.phone,
+                    email: customerInfo.email || "",
+                    address: customerInfo.address,
+                    notes: customerInfo.notes || "",
+                    paymentMethod: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
+                    items: [...itemsToPlace],
+                    total: totalAmount,
+                    status: "pending",
+                    createdAt: new Date(dbOrder.created_at).toLocaleString("vi-VN")
+                };
+            } else {
+                throw new Error("No data returned from Supabase insert");
+            }
+        } catch (err) {
+            console.warn("Using local fallback for placeOrder:", err);
+            isOffline = true;
+            orderId = `DH-${Date.now()}`;
+            createdOrder = {
+                id: orderId,
+                customerName: customerInfo.name,
+                phone: customerInfo.phone,
+                email: customerInfo.email || "",
+                address: customerInfo.address,
+                notes: customerInfo.notes || "",
+                paymentMethod: customerInfo.paymentMethod === "cod" ? "COD" : "Chuyển khoản",
+                items: [...itemsToPlace],
+                total: totalAmount,
+                status: "pending",
+                createdAt: new Date().toLocaleString("vi-VN")
+            };
+        }
+
+        // Deduct stock ONLY AFTER the order is confirmed created
+        const updatedProducts = [...products];
+        for (const item of itemsToPlace) {
+            const product = updatedProducts.find(p => String(p.id) === String(item.id));
+            if (product) {
+                const newStock = Math.max(0, (product.stock || 0) - item.quantity);
+                product.stock = newStock;
+                if (!isOffline) {
+                    try {
+                        await supabase
+                            .from('products')
+                            .update({ stock: newStock })
+                            .eq('id', item.id);
+                    } catch (stockErr) {
+                        console.warn("Could not sync stock to Supabase:", stockErr);
+                    }
+                }
+            }
+        }
+        setProducts(updatedProducts);
+        localStorage.setItem("mini_shop_products", JSON.stringify(updatedProducts));
+
+        // Save order to state & localStorage
         setOrders(prevOrders => {
-            const newOrders = [newOrder, ...prevOrders];
+            const newOrders = [createdOrder, ...prevOrders];
             localStorage.setItem("mini_shop_orders", JSON.stringify(newOrders));
             return newOrders;
         });
 
         // Remove only the checked out items from the cart
         if (overrideItems) {
-            const overrideIds = overrideItems.map(item => item.id);
-            const remainingCart = cart.filter(item => !overrideIds.includes(item.id));
+            const overrideIds = overrideItems.map(item => String(item.id));
+            const remainingCart = cart.filter(item => !overrideIds.includes(String(item.id)));
             setCart(remainingCart);
             localStorage.setItem("mini_shop_cart", JSON.stringify(remainingCart));
         } else {
             clearCart();
         }
 
+        showToast(`Đặt hàng thành công! Mã đơn: ${orderId} ${isOffline ? "(Ngoại tuyến)" : ""}`);
         return orderId;
     };
 
@@ -485,7 +591,7 @@ export function ShopProvider({ children }) {
                     .single();
                 if (catData) categoryName = catData.name;
             } catch (catErr) {
-                console.error("Error fetching category name:", catErr);
+                console.warn("Không thể tải tên danh mục từ Supabase:", catErr?.message || catErr);
             }
         }
 
@@ -536,7 +642,7 @@ export function ShopProvider({ children }) {
         }
 
         const updatedProducts = products.map(p => {
-            if (p.id === updatedProductData.id) {
+            if (String(p.id) === String(updatedProductData.id)) {
                 return { ...p, ...updatedProductData };
             }
             return p;
@@ -547,7 +653,7 @@ export function ShopProvider({ children }) {
     };
 
     const deleteProduct = async (productId) => {
-        const p = products.find(item => item.id === productId);
+        const p = products.find(item => String(item.id) === String(productId));
         const name = p ? p.name : "Sản phẩm";
         let isOffline = false;
 
@@ -563,7 +669,7 @@ export function ShopProvider({ children }) {
             isOffline = true;
         }
 
-        const updatedProducts = products.filter(item => item.id !== productId);
+        const updatedProducts = products.filter(item => String(item.id) !== String(productId));
         setProducts(updatedProducts);
         localStorage.setItem("mini_shop_products", JSON.stringify(updatedProducts));
         showToast(`Đã xóa sản phẩm: ${name} ${isOffline ? "(Ngoại tuyến)" : ""}`);
@@ -585,7 +691,7 @@ export function ShopProvider({ children }) {
         }
 
         const updatedOrders = orders.map(o => {
-            if (o.id === orderId) {
+            if (String(o.id) === String(orderId)) {
                 return { ...o, status: newStatus };
             }
             return o;
@@ -609,7 +715,7 @@ export function ShopProvider({ children }) {
             isOffline = true;
         }
 
-        const updatedOrders = orders.filter(o => o.id !== orderId);
+        const updatedOrders = orders.filter(o => String(o.id) !== String(orderId));
         setOrders(updatedOrders);
         localStorage.setItem("mini_shop_orders", JSON.stringify(updatedOrders));
         showToast(`Đã xóa đơn hàng ${orderId} ${isOffline ? "(Ngoại tuyến)" : ""}`);

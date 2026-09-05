@@ -3,8 +3,21 @@ import { createClient } from "@/utils/supabase/middleware";
 export async function middleware(request) {
   const { supabase, supabaseResponse } = createClient(request);
   
-  // Refresh session if needed
-  await supabase.auth.getUser();
+  // Only attempt auth refresh if Supabase session cookies are present
+  const authCookies = request.cookies.getAll().filter(c => c.name.includes('sb-'));
+  if (authCookies.length > 0) {
+    try {
+      const { error } = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 300))
+      ]);
+      if (error && (error.message?.includes("fetch") || error.status === 0)) {
+        authCookies.forEach(c => supabaseResponse.cookies.delete(c.name));
+      }
+    } catch {
+      authCookies.forEach(c => supabaseResponse.cookies.delete(c.name));
+    }
+  }
 
   return supabaseResponse;
 }

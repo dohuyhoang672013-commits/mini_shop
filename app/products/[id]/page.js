@@ -7,7 +7,7 @@ import ProductCard from "../../../components/ProductCard";
 
 export default function ProductDetailPage({ params }) {
     const resolvedParams = use(params);
-    const productId = parseInt(resolvedParams.id);
+    const productId = resolvedParams.id;
 
     const {
         products,
@@ -24,19 +24,19 @@ export default function ProductDetailPage({ params }) {
 
     const [qty, setQty] = useState(1);
 
-    const product = products.find((p) => p.id === productId);
+    const product = products.find((p) => String(p.id) === String(productId));
 
     if (!mounted) {
         return (
-            <main className="container section">
+            <div className="container section">
                 <div className="detail-loading">Đang tải thông tin sản phẩm...</div>
-            </main>
+            </div>
         );
     }
 
     if (!product) {
         return (
-            <main className="container section">
+            <div className="container section">
                 <div className="detail-loading" style={{ textAlign: "center", padding: "60px 0" }}>
                     <h3>Không tìm thấy sản phẩm!</h3>
                     <p>Sản phẩm không tồn tại hoặc đã bị gỡ khỏi tiệm.</p>
@@ -44,7 +44,7 @@ export default function ProductDetailPage({ params }) {
                         Quay lại cửa hàng
                     </Link>
                 </div>
-            </main>
+            </div>
         );
     }
 
@@ -102,7 +102,7 @@ export default function ProductDetailPage({ params }) {
     };
 
     return (
-        <main className="container section">
+        <div className="container section">
             {/* Breadcrumbs */}
             <div className="breadcrumbs">
                 <Link href="/">Trang chủ</Link> &nbsp;/&nbsp; 
@@ -222,6 +222,6 @@ export default function ProductDetailPage({ params }) {
                     </div>
                 </section>
             )}
-        </main>
+        </div>
     );
 }

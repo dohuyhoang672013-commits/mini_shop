@@ -41,19 +41,20 @@ function CheckoutCatalog() {
                 sessionStorage.setItem("mini_shop_checkout_intent", "true");
                 router.push("/login");
             } else {
-                // Populate default name from user profile username
+                // Populate default name and email from user profile
                 setName(user.username === "admin" ? "" : user.username);
+                setEmail(user.email || "");
             }
         }
     }, [user, mounted]);
 
     if (!mounted || !user) {
         return (
-            <main className="container section">
+            <div className="container section">
                 <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>
                     {!mounted ? "Đang tải trang thanh toán..." : "Đang chuyển hướng đến đăng nhập..."}
                 </div>
-            </main>
+            </div>
         );
     }
 
@@ -77,13 +78,30 @@ function CheckoutCatalog() {
             return;
         }
 
+        const cleanPhone = phone.trim().replace(/[\s.-]/g, "");
+        const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+            alert("Vui lòng nhập số điện thoại hợp lệ (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09)!");
+            return;
+        }
+
+        if (!name.trim()) {
+            alert("Vui lòng nhập họ và tên nhận hàng!");
+            return;
+        }
+
+        if (!address.trim()) {
+            alert("Vui lòng nhập địa chỉ nhận hàng!");
+            return;
+        }
+
         try {
             const id = await placeOrder({
-                name,
-                phone,
-                email,
-                address,
-                notes,
+                name: name.trim(),
+                phone: cleanPhone,
+                email: email.trim(),
+                address: address.trim(),
+                notes: notes.trim(),
                 paymentMethod
             }, checkoutItems);
 
@@ -92,7 +110,7 @@ function CheckoutCatalog() {
                 setShowSuccessModal(true);
             }
         } catch (error) {
-            console.error("Lỗi khi đặt hàng:", error);
+            console.warn("Lỗi khi đặt hàng:", error);
             alert("Đặt hàng thất bại, vui lòng thử lại!");
         }
     };
@@ -108,7 +126,7 @@ function CheckoutCatalog() {
     };
 
     return (
-        <main className="container section">
+        <div className="container section">
             {/* Breadcrumbs */}
             <div className="breadcrumbs">
                 <Link href="/">Trang chủ</Link> &nbsp;/&nbsp; <span className="active-crumb">Thanh toán</span>
@@ -330,18 +348,18 @@ function CheckoutCatalog() {
                     </button>
                 </div>
             </div>
-        </main>
+        </div>
     );
 }
 
 export default function CheckoutPage() {
     return (
         <Suspense fallback={
-            <main className="container section">
+            <div className="container section">
                 <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-muted)" }}>
                     Đang tải trang thanh toán...
                 </div>
-            </main>
+            </div>
         }>
             <CheckoutCatalog />
         </Suspense>

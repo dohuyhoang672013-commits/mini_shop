@@ -25,7 +25,10 @@ export default function Home() {
                         src="/assets/images/banner/banner-trang-chu-mini-shop.webp"
                         alt="Không gian trưng bày gốm và đồ thủ công mộc mạc"
                         className="hero-image"
-                        onError={(e) => { e.target.src = "/assets/images/banner/banner-trang-chu-mini-shop.webp"; }}
+                        onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = "/assets/images/placeholder.webp";
+                        }}
                     />
                     <div className="hero-overlay">
                         <div className="hero-content">

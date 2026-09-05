@@ -43,10 +43,10 @@ function ProductsCatalog() {
     const filteredProducts = products.filter((product) => {
         // Category filter
         const matchCategory = categoryFilter === "all" || product.category === categoryFilter;
-        
+
         // Search filter
-        const matchSearch = searchQuery.trim() === "" || 
-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        const matchSearch = searchQuery.trim() === "" ||
+            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Active products only in public pages
@@ -155,7 +155,7 @@ function ProductsCatalog() {
                             </select>
                         </div>
                     </div>
-                    
+
                     {/* Close button for mobile filter */}
                     {mobileFilterOpen && (
                         <button

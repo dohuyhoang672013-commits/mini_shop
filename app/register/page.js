@@ -50,14 +50,14 @@ export default function RegisterPage() {
 
     if (!isMounted) {
         return (
-            <main className="container section">
+            <div className="container section">
                 <div style={{ textAlign: "center", padding: "60px 0" }}>Đang tải...</div>
-            </main>
+            </div>
         );
     }
 
     return (
-        <main className="container section">
+        <div className="container section">
             <div className="auth-container">
                 <div className="auth-card">
                     <div className="auth-header">
@@ -125,6 +125,6 @@ export default function RegisterPage() {
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     );
 }

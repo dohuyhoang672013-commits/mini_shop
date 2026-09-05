@@ -62,6 +62,14 @@ export default function Header() {
         return () => window.removeEventListener("click", handleOutsideClick);
     }, []);
 
+    const debounceTimerRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        };
+    }, []);
+
     const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const wishlistCount = wishlist.length;
 
@@ -69,19 +77,28 @@ export default function Header() {
         const val = e.target.value;
         setSearchQuery(val);
         if (pathname === "/products") {
-            const params = new URLSearchParams(searchParams);
-            if (val) {
-                params.set("search", val);
-            } else {
-                params.delete("search");
-            }
-            router.push(`/products?${params.toString()}`);
+            if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = setTimeout(() => {
+                const params = new URLSearchParams(searchParams);
+                if (val.trim()) {
+                    params.set("search", val.trim());
+                } else {
+                    params.delete("search");
+                }
+                router.replace(`/products?${params.toString()}`);
+            }, 300);
         }
     };
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+        const query = searchQuery.trim();
+        if (query) {
+            router.push(`/products?search=${encodeURIComponent(query)}`);
+        } else {
+            router.push("/products");
+        }
     };
 
     const handleLogout = async () => {

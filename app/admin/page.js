@@ -54,11 +54,11 @@ export default function AdminPage() {
     useEffect(() => {
         if (isMounted && !authLoading) {
             if (!user || user.role !== "admin") {
-                alert("Vui lòng đăng nhập tài khoản admin để vào trang quản trị!");
-                router.push("/login");
+                showToast("Vui lòng đăng nhập tài khoản quản trị viên để truy cập!");
+                router.replace("/login");
             }
         }
-    }, [user, authLoading, isMounted]);
+    }, [user, authLoading, isMounted, router, showToast]);
 
     // Redraw charts when activeTab, orders, products, or Chart.js loads
     useEffect(() => {
@@ -84,30 +84,29 @@ export default function AdminPage() {
                 dateStrings.push(d.toLocaleDateString("vi-VN"));
             }
 
-            const baseValues = [1500000, 2400000, 1800000, 3100000, 2800000, 4200000, 5200000];
-            const revenueData = dateStrings.map((dateStr, idx) => {
+            const parseDateToComparable = (dateVal) => {
+                if (!dateVal) return "";
+                const d = new Date(dateVal);
+                if (!isNaN(d.getTime())) {
+                    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+                }
+                const match = String(dateVal).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (match) {
+                    return `${match[1].padStart(2, '0')}/${match[2].padStart(2, '0')}/${match[3]}`;
+                }
+                return "";
+            };
+
+            const revenueData = dateStrings.map((dateStr) => {
+                const queryParts = dateStr.split('/');
+                const queryNormalized = `${queryParts[0].padStart(2, '0')}/${queryParts[1].padStart(2, '0')}/${queryParts[2]}`;
+
                 const dailyOrders = orders.filter(o => {
                     if (o.status !== "delivered") return false;
-                    const orderDatePart = o.createdAt.split(',')[0].trim();
-                    const parseDateParts = orderDatePart.split('/');
-                    if (parseDateParts.length === 3) {
-                        const day = parseDateParts[0].padStart(2, '0');
-                        const month = parseDateParts[1].padStart(2, '0');
-                        const year = parseDateParts[2];
-                        const standardizedOrderDate = `${day}/${month}/${year}`;
-                        
-                        const queryParts = dateStr.split('/');
-                        const queryDay = queryParts[0].padStart(2, '0');
-                        const queryMonth = queryParts[1].padStart(2, '0');
-                        const queryYear = queryParts[2];
-                        const standardizedQueryDate = `${queryDay}/${queryMonth}/${queryYear}`;
-                        
-                        return standardizedOrderDate === standardizedQueryDate;
-                    }
-                    return false;
+                    const orderDateNormalized = parseDateToComparable(o.createdAt);
+                    return orderDateNormalized === queryNormalized;
                 });
-                const orderSum = dailyOrders.reduce((sum, o) => sum + o.total, 0);
-                return baseValues[idx] + orderSum;
+                return dailyOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
             });
 
             salesChartInstRef.current = new window.Chart(salesCanvasRef.current, {
@@ -421,16 +420,19 @@ export default function AdminPage() {
                         <div style={{ fontSize: "0.8rem", color: "#94A3B8", marginTop: "4px" }}>Cửa Hàng Thủ Công</div>
                     </div>
                     
-                    <ul className="admin-menu-list" style={{ listStyle: "none", padding: "20px 0" }}>
+                    <ul className="admin-menu-list">
                         <li>
                             <button
                                 className={`admin-menu-item ${activeTab === "overview" ? "active" : ""}`}
                                 onClick={() => setActiveTab("overview")}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                                </svg>
-                                Tổng quan Dashboard
+                                <span className="admin-menu-item-main">
+                                    <svg className="admin-menu-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                                    </svg>
+                                    <span className="admin-menu-label">Tổng quan Dashboard</span>
+                                </span>
+                                <span className="admin-menu-pill-indicator" title="Hệ thống hoạt động"></span>
                             </button>
                         </li>
                         <li>
@@ -438,10 +440,13 @@ export default function AdminPage() {
                                 className={`admin-menu-item ${activeTab === "products" ? "active" : ""}`}
                                 onClick={() => { setActiveTab("products"); resetProductForm(); }}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                                </svg>
-                                Quản lý sản phẩm
+                                <span className="admin-menu-item-main">
+                                    <svg className="admin-menu-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                                    </svg>
+                                    <span className="admin-menu-label">Quản lý sản phẩm</span>
+                                </span>
+                                <span className="admin-menu-badge">{products.length}</span>
                             </button>
                         </li>
                         <li>
@@ -449,10 +454,13 @@ export default function AdminPage() {
                                 className={`admin-menu-item ${activeTab === "orders" ? "active" : ""}`}
                                 onClick={() => setActiveTab("orders")}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                Quản lý đơn hàng
+                                <span className="admin-menu-item-main">
+                                    <svg className="admin-menu-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.8" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="admin-menu-label">Quản lý đơn hàng</span>
+                                </span>
+                                <span className="admin-menu-badge">{orders.length}</span>
                             </button>
                         </li>
                     </ul>
@@ -712,11 +720,25 @@ export default function AdminPage() {
                                                                 </td>
                                                                 <td>
                                                                     <div className="table-actions">
-                                                                        <button className="table-btn-edit" onClick={() => handleEditClick(p)} title="Sửa">
-                                                                            Sửa
+                                                                        <button
+                                                                            className="table-btn-edit"
+                                                                            onClick={() => handleEditClick(p)}
+                                                                            title="Chỉnh sửa thông tin sản phẩm"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                                                            </svg>
+                                                                            <span>Sửa</span>
                                                                         </button>
-                                                                        <button className="table-btn-delete" onClick={() => handleDeleteClick(p.id)} title="Xóa">
-                                                                            Xóa
+                                                                        <button
+                                                                            className="table-btn-delete"
+                                                                            onClick={() => handleDeleteClick(p.id)}
+                                                                            title="Xóa sản phẩm này"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                            </svg>
+                                                                            <span>Xóa</span>
                                                                         </button>
                                                                     </div>
                                                                 </td>
@@ -728,33 +750,51 @@ export default function AdminPage() {
                                         </div>
 
                                         {/* Pagination */}
-                                        {totalPages > 1 && (
-                                            <div className="admin-pagination" id="products-pagination" style={{ display: "flex", gap: "6px", marginTop: "20px", justifyContent: "flex-end" }}>
-                                                <button
-                                                    className="page-btn"
-                                                    disabled={currentProductPage === 1}
-                                                    onClick={() => setCurrentProductPage(currentProductPage - 1)}
-                                                >
-                                                    &lt;
-                                                </button>
-                                                {Array.from({ length: totalPages }, (_, idx) => (
-                                                    <button
-                                                        key={idx + 1}
-                                                        className={`page-btn ${currentProductPage === idx + 1 ? "active" : ""}`}
-                                                        onClick={() => setCurrentProductPage(idx + 1)}
-                                                    >
-                                                        {idx + 1}
-                                                    </button>
-                                                ))}
-                                                <button
-                                                    className="page-btn"
-                                                    disabled={currentProductPage === totalPages}
-                                                    onClick={() => setCurrentProductPage(currentProductPage + 1)}
-                                                >
-                                                    &gt;
-                                                </button>
+                                        <div className="admin-pagination-wrapper" id="products-pagination">
+                                            <div className="admin-pagination-info">
+                                                Hiển thị <b>{products.length === 0 ? 0 : indexOfFirstProduct + 1}</b> - <b>{Math.min(indexOfLastProduct, products.length)}</b> trong tổng số <b>{products.length}</b> sản phẩm
                                             </div>
-                                        )}
+                                            {totalPages > 1 && (
+                                                <div className="admin-pagination-controls">
+                                                    <button
+                                                        className="admin-pagination-nav"
+                                                        disabled={currentProductPage === 1}
+                                                        onClick={() => setCurrentProductPage(currentProductPage - 1)}
+                                                        title="Trang trước"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                                        </svg>
+                                                        <span>Trước</span>
+                                                    </button>
+                                                    <div className="admin-pagination-pages">
+                                                        {Array.from({ length: totalPages }, (_, idx) => {
+                                                            const pageNum = idx + 1;
+                                                            return (
+                                                                <button
+                                                                    key={pageNum}
+                                                                    className={`admin-page-number ${currentProductPage === pageNum ? "active" : ""}`}
+                                                                    onClick={() => setCurrentProductPage(pageNum)}
+                                                                >
+                                                                    {pageNum}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <button
+                                                        className="admin-pagination-nav"
+                                                        disabled={currentProductPage === totalPages}
+                                                        onClick={() => setCurrentProductPage(currentProductPage + 1)}
+                                                        title="Trang sau"
+                                                    >
+                                                        <span>Sau</span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Categories Table */}
@@ -943,8 +983,8 @@ export default function AdminPage() {
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                orders.map((o) => (
-                                                    <tr key={o.id}>
+                                                orders.map((o, idx) => (
+                                                    <tr key={`${o.id}-${idx}`}>
                                                         <td style={{ fontWeight: "700", color: "#3B82F6" }}>{o.id}</td>
                                                         <td>
                                                             <div>
@@ -987,9 +1027,12 @@ export default function AdminPage() {
                                                                         deleteOrder(o.id);
                                                                     }
                                                                 }}
-                                                                style={{ padding: "4px 8px", fontSize: "0.8rem" }}
+                                                                title="Xóa đơn hàng này"
                                                             >
-                                                                Xóa
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                                </svg>
+                                                                <span>Xóa</span>
                                                             </button>
                                                         </td>
                                                     </tr>
